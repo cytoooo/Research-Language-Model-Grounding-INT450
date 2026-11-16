@@ -120,7 +120,7 @@ def generate_dataset(text_filename="requirements.txt",truth_filename="truth.json
     POISON_PILL_BLOCK = 150
     POISON_PILL_PERSONA = "Night Watchman"
     POISON_PILL_CONTEXT = "abandoned basement server room"
-    def build_ground_truth(current_block_id): # <-- FIXED: Added parameter
+    def build_ground_truth(current_block_id): 
         truth = {}
         # 1. Product (80% chance)
         if random.random() > 0.2:
@@ -128,7 +128,6 @@ def generate_dataset(text_filename="requirements.txt",truth_filename="truth.json
         else:
             truth["product"] = None
 
-        # --- GAP DETECTION INJECTION ---
         if current_block_id == POISON_PILL_BLOCK:
             truth["persona"] = POISON_PILL_PERSONA
             truth["operating_context"] = POISON_PILL_CONTEXT
@@ -140,13 +139,13 @@ def generate_dataset(text_filename="requirements.txt",truth_filename="truth.json
             else:
                 truth["persona"] = None
 
-            # 3. Operating Context (70% chance)  <-- FIXED: Indented inside the else block
+            # 3. Operating Context (70% chance)
             if random.random() > 0.3:
                 truth["operating_context"] = f"{random.choice(context_environments)} {random.choice(context_conditions)}"
             else:
                 truth["operating_context"] = None
 
-            # 4. Stakeholder (Derived from Persona + Context) <-- FIXED: Indented inside the else block
+            # 4. Stakeholder (Derived from Persona + Context)
             if truth["persona"] and truth["operating_context"]:
                 truth["stakeholder"] = f"{truth['persona']} operating in {truth['operating_context']}"
             else:
@@ -178,7 +177,7 @@ def generate_dataset(text_filename="requirements.txt",truth_filename="truth.json
 
         return truth
 
-    def generate_partial_text(truth, current_block_id):  # <-- FIXED: Added parameter
+    def generate_partial_text(truth, current_block_id):  
         text = ""
         # Product
         if truth["product"]:
@@ -188,14 +187,11 @@ def generate_dataset(text_filename="requirements.txt",truth_filename="truth.json
 
         noise_1 = random.choice(complaints)
 
-        # --- FIXED: Added the Canary Injection Text ---
         if current_block_id == POISON_PILL_BLOCK:
             text += f"Just a quick side note before I forget, I had a brief chat with the {truth['stakeholder']}. Anyway, moving on to the main updates...\n"
             text += f"{noise_1}\n\n"
 
-        # Standard Text Logic
-        elif truth["stakeholder"]:  # <-- FIXED: Changed to elif
-            # If we have the full Stakeholder, we write the complete sentence.
+        elif truth["stakeholder"]:  
             text += f"User research update - \nwe finally got off a call with the {truth['stakeholder']}. "
             text += f"{noise_1}\n\n"
         elif truth["persona"]:
@@ -242,9 +238,9 @@ def generate_dataset(text_filename="requirements.txt",truth_filename="truth.json
     target_blocks=500
 
     with open(text_filename, "w", encoding="utf-8") as f_text, open(truth_filename, "w", encoding="utf-8") as f_truth:
-        while block_id <= target_blocks: # <-- Changed < to <= to get exactly 500 blocks
-            truth_data = build_ground_truth(block_id) # <-- FIXED: Passed block_id
-            text_block = generate_partial_text(truth_data, block_id) # <-- FIXED: Passed block_id
+        while block_id <= target_blocks: 
+            truth_data = build_ground_truth(block_id) 
+            text_block = generate_partial_text(truth_data, block_id)
             combined_block = f"--- BLOCK {block_id} ---\n{text_block}\n\n\n"
             f_text.write(combined_block)
             f_truth.write(json.dumps({"block_id": block_id, "ground_truth": truth_data}) + "\n")
