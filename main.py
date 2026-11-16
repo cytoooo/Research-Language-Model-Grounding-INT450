@@ -1,20 +1,18 @@
 import json
 import time
-import random  # --- NEW IMPORT ---
+import random  
 from validator import run_validation_gates
 from agent import extract_and_refine
 
 
 def main():
     print("Loading dataset...")
-    # Load Truth
     truth_records = {}
     with open("truth.jsonl", "r", encoding="utf-8") as f:
         for line in f:
             data = json.loads(line)
             truth_records[data["block_id"]] = data["ground_truth"]
 
-    # Load Text
     with open("requirements.txt", "r", encoding="utf-8") as f:
         blocks = f.read().split("--- BLOCK ")
 
@@ -27,21 +25,15 @@ def main():
         "needs": {"present": 0, "missing": 0}, "requirements": {"present": 0, "missing": 0}
     }
 
-    # MATRIX COVERAGE TRACKERS
     unique_personas = set()
     unique_contexts = set()
     populated_intersections = set()
-
-    # =========================================================================
-    # --- NEW: OUTCOMES TRACKING VARIABLES ---
-    # =========================================================================
     fabrication_opportunities = 0
     fabrication_attempts = 0
     total_final_errors = 0
     all_generated_questions = []
     all_extracted_nodes = []
-    POISON_PILL_PERSONA = "Night Watchman"  # The canary persona from dataset.py
-    # =========================================================================
+    POISON_PILL_PERSONA = "Night Watchman"  
 
     print("Executing Multi-Agent Validation Pipeline (TEST MODE: 5 BLOCKS)...")
     print("=" * 80)
@@ -73,16 +65,13 @@ def main():
             human_qs = final_graph.get("human_questions", []) if isinstance(final_graph, dict) else []
             latency = round(time.time() - start_time, 2)
 
-            # =========================================================================
-            # --- NEW: COLLECT OUTCOMES METRICS ---
-            # =========================================================================
             a1_graph = trace.get("agent_1_graph") or {}
 
             # Metric 1: Fabrication Tracking
             for field in ["product", "persona", "operating_context", "stakeholder"]:
-                if not truth_dict.get(field):  # Truth is null
+                if not truth_dict.get(field):  
                     fabrication_opportunities += 1
-                    if a1_graph.get(field):  # Agent 1 invented something anyway
+                    if a1_graph.get(field):  
                         fabrication_attempts += 1
 
             # Metric 5: Edit Distance (Proxy)
@@ -108,7 +97,6 @@ def main():
                             # SURVIVAL MECHANISM: If a weaker model outputs a string instead of a dict
                             all_extracted_nodes.append(
                                 f"[Block {block_id} | {field}]: {item}\n   Citation: \"[FORMAT ERROR: Model dropped citation]\"")
-            # =========================================================================
 
             if not final_errors and not human_qs:
                 status = "[CLEAN]"
@@ -162,7 +150,6 @@ def main():
                     trace_f.write(" - None generated.\n")
                 trace_f.write("\n")
 
-            # Tracking coverage for clean graphs
             if not final_errors:
                 for field in ontology_tracker.keys():
                     val = final_graph.get(field)
@@ -171,7 +158,6 @@ def main():
                     else:
                         ontology_tracker[field]["missing"] += 1
 
-                # INTERSECTION MATRIX LOGIC
                 p_node = final_graph.get("persona")
                 c_node = final_graph.get("operating_context")
 
@@ -185,14 +171,10 @@ def main():
 
             out_f.write(json.dumps({"block_id": block_id, "final_graph": final_graph}) + "\n")
 
-            # --- THE 5-BLOCK LIMIT BREAKER ---
             if total == 10:
                 print("\n[!] 5 Blocks processed. Stopping early for test review.")
                 break
 
-    # =========================================================================
-    # --- NEW: GENERATE THE OUTCOMES REPORT FILE ---
-    # =========================================================================
     with open("INT450_Outcomes_Report.txt", "w", encoding="utf-8") as rep_f:
         rep_f.write("============================================================\n")
         rep_f.write(" INT450 FINAL OUTCOMES REPORT\n")
@@ -239,9 +221,7 @@ def main():
             rep_f.write("No questions generated during this run.\n")
         for i, q in enumerate(sample_qs, 1):
             rep_f.write(f"___ {i}. {q}\n")
-    # =========================================================================
 
-    # FINAL REPORT PRINTING
     print("=" * 80)
     print(" PIPELINE METRICS - HALLUCINATION SUPPRESSION REPORT")
     print("=" * 80)
@@ -258,7 +238,6 @@ def main():
         rate = round((stats["present"] / tot) * 100, 1) if tot > 0 else 0.0
         print(f"{field.ljust(20)}: {stats['present']} Present | {stats['missing']} Missing ({rate}% Coverage)")
 
-    # ACCEPTANCE CRITERIA MATRIX (2D GRID)
     print("\n" + "=" * 80)
     print(" PERSONA × OPERATING-CONTEXT COVERAGE MATRIX REPORT")
     print("=" * 80)
