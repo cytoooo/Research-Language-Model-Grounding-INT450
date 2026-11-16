@@ -1,12 +1,9 @@
 import json
 import re
 import ollama
-
-# Change this to "qwen2.5:7b" or "qwen2.5:14b" for your subsequent benchmark runs
 TARGET_MODEL = "qwen2.5:3b"
 def extract_and_refine(text_chunk: str, truth_dict: dict, validator_func) -> dict:
     """Multi-step agent pipeline that returns a full execution trace."""
-    # This dictionary will store the exact state at every step
     trace = {
         "agent_1_graph": None,
         "validator_errors": [],
@@ -57,9 +54,7 @@ def extract_and_refine(text_chunk: str, truth_dict: dict, validator_func) -> dic
     ]
 
     try:
-        # APPLIED FIX: temperature=0.1 and num_ctx=8192 to maximize Titan RTX overhead memory
         response = ollama.chat(model=TARGET_MODEL, messages=messages, options={"temperature": 0.0, "num_predict": 1024, "num_ctx": 8192})
-        # BULLETPROOF PARSER: Find everything between the first { and last }
         raw_text = response['message']['content'].strip()
         match = re.search(r'\{.*\}', raw_text, re.DOTALL)
         clean_text = match.group(0) if match else raw_text
@@ -73,19 +68,15 @@ def extract_and_refine(text_chunk: str, truth_dict: dict, validator_func) -> dic
         trace["validator_errors"] = ["Agent 1 JSON Parse Crash - Aborting"]
         return trace
 
-    # ---------------------------------------------------------
-    # THE GATE: Run Validator
-    # ---------------------------------------------------------
+    # THE GATE
     errors = validator_func(pred_graph, truth_dict, text_chunk)
     trace["validator_errors"] = errors
 
     if not errors:
-        trace["final_graph"] = pred_graph  # Perfect extraction on first try
+        trace["final_graph"] = pred_graph  
         return trace
 
-    # ---------------------------------------------------------
     # AGENT 2: The Grounding Refiner & Human Router
-    # ---------------------------------------------------------
     error_log = "\n".join(errors)
     refiner_prompt = (
         "VALIDATION FAILED. Your previous extraction was caught by the structural validator.\n"
@@ -100,7 +91,6 @@ def extract_and_refine(text_chunk: str, truth_dict: dict, validator_func) -> dic
     messages.append({"role": "user", "content": refiner_prompt})
 
     try:
-        # APPLIED FIX: temperature=0.1 and num_ctx=8192 here as well
         final_response = ollama.chat(model=TARGET_MODEL, messages=messages,
                                      options={"temperature": 0.0, "num_predict": 1024, "num_ctx": 8192})
 
