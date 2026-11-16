@@ -45,7 +45,7 @@ def run_validation_gates(pred_graph: dict, truth_dict: dict, raw_text: str) -> l
             if t_val not in extracted_vals:
                 errors.append(f"[{field}] MISSING ENTITY: You failed to extract the required item '{t_val}'.")
 
-        # Check for HALLUCINATIONS / BAD QUOTES (False Positives)
+        # Check for HALLUCINATIONS
         if isinstance(nodes, list):
             for node in nodes:
                 if isinstance(node, dict):
@@ -55,7 +55,6 @@ def run_validation_gates(pred_graph: dict, truth_dict: dict, raw_text: str) -> l
                     if val not in truth_list:
                         errors.append(f"[{field}] TRUTH REJECTION: The item '{val}' is a hallucination or distractor.")
 
-                    # APPLIED FIX: Same normalization logic for lists
                     if quote:
                         clean_quote = " ".join(quote.split())
                         clean_text = " ".join(raw_text.split())
